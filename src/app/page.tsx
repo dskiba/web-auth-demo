@@ -1,113 +1,173 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+import { RegisterPayload } from '~/types/register'
+import { base64encode, bufferDecode, bufferEncode, bufferToUTF8String } from '~/utils/buffer'
+import { arrayBufferToString } from 'next/dist/server/app-render/action-encryption-utils'
+
+type SubmitEvent = React.FormEvent<HTMLFormElement> & {
+  nativeEvent: { submitter: HTMLButtonElement }
+}
 
 export default function Home() {
+  // const [creds, setCreds] = useState<Object | null>(null)
+  const [serverResp, setServerResp] = useState<any | null>(null)
+
+  const handleSubmit = async (e: SubmitEvent) => {
+    console.log({ e })
+    e.preventDefault()
+    try {
+      const isRegister = e.nativeEvent.submitter.name === 'reg'
+      const isAuth = e.nativeEvent.submitter.name === 'auth'
+
+      const getServerOptions = async () => {
+        const res = await fetch('/api/options', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user, isReg: isRegister }),
+        })
+        if (res.status !== 200) {
+          const msg = await res.json()
+          throw new Error(msg)
+        }
+        const json = await res.json() as {
+          message: string,
+          options: RegisterPayload
+        }
+        setServerResp(json)
+        return json.options
+      }
+
+      const user = e.currentTarget[fieldname].value
+      const serverOptions = await getServerOptions()
+      console.log({ serverOptions })
+      if (isRegister) {
+        const options: CredentialCreationOptions = {
+          publicKey: {
+            ...serverOptions,
+            challenge: Uint8Array.from(serverOptions.challenge, c => c.charCodeAt(0)),
+            user: {
+              ...serverOptions.user,
+              id: Uint8Array.from(serverOptions.user.id, c => c.charCodeAt(0)),
+            }
+          },
+        }
+        document.cookie = `userId=${serverOptions.user.name}`
+        const credential = await navigator.credentials.create(options) as any
+        // ts-expect-error
+        const { id, response, type } = credential
+        let userHandle = undefined
+        if (response.userHandle) {
+          userHandle = bufferToUTF8String(response.userHandle)
+        }
+        // Convert values to base64 to make it easier to send back to the server
+        const rawId = new Uint8Array(credential.rawId)
+
+        //The credential object is secured by the client and can for example not be sent directly to the server. Therefore we extract all relevant information from the object, transform it to a securely encoded and server-interpretable format and then send it to our server for further verification.
+        let attestation = {
+          id: bufferEncode(rawId),
+          readableId: credential.id,
+          clientDataJSON: arrayBufferToString(credential.response.clientDataJSON),
+          attestationObject: base64encode(credential.response.attestationObject)
+        }
+
+        const regResponse = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            pkc: attestation
+          }),
+        })
+        if (regResponse.status !== 200) {
+          const msg = await regResponse.json()
+          throw new Error(msg)
+        }
+        console.log({ verifyResponse: regResponse })
+      } else {
+        let publicKeyCredentialRequestOptions = { ...serverOptions }
+        // @ts-expect-error
+        publicKeyCredentialRequestOptions.challenge = Uint8Array.from(
+          publicKeyCredentialRequestOptions.challenge, c => c.charCodeAt(0)).buffer
+        publicKeyCredentialRequestOptions.allowCredentials[0].id = bufferDecode(publicKeyCredentialRequestOptions.allowCredentials[0].id)
+
+        console.log(publicKeyCredentialRequestOptions)
+        //Here the user is prompted to register. If the verification succeeds, the client returns an object with all relevant credentials of the user.
+        const assertion = await navigator.credentials.get({
+          // @ts-expect-error
+          publicKey: publicKeyCredentialRequestOptions
+        })
+        if (!assertion) {
+          throw new Error('No assertion')
+        }
+
+        //The credential object is secured by the client and can for example not be sent directly to the server. Therefore we extract all relevant information from the object, transform it to a securely encoded and server-interpretable format and then send it to our server for further verification.
+        const readableAssertion = {
+          id: base64encode(assertion.rawId),
+          rawId: base64encode(assertion.rawId),
+          response: {
+            clientDataJSON: arrayBufferToString(assertion.response.clientDataJSON),
+            authenticatorData: base64encode(assertion.response.authenticatorData),
+            signature: base64encode(assertion.response.signature),
+            userHandle: base64encode(assertion.response.userHandle),
+          }
+
+        }
+
+        const verifyResponse = await fetch('/api/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            pkc: readableAssertion,
+            user,
+          })
+        })
+        console.log({ verifyResponse })
+        const json = await verifyResponse.json()
+        console.log({ json })
+        setServerResp(json)
+        // auth
+      }
+
+      // const json = await response.json()
+      // setServerResp(json)
+    } catch (err) {
+      console.error('ERR', err)
+      setServerResp(err)
+    }
+  }
+
+  const fieldname = 'auth_user'
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+    <main className="flex min-h-screen flex-col p-10 mb-4">
+      <form className={'flex flex-col gap-2 max-w-[300px] justify-center mx-auto w-full'}
+            onSubmit={handleSubmit}>
+        <h2 className={'mb-2'}>Biometric auth demo</h2>
+        <h3 className={'mb-0.5'}>Registration step</h3>
+        <label className={'text-xs flex flex-col'}>
+          User
+          <input
+            id={fieldname} name={fieldname} autoComplete={'off'} autoCorrect={'off'}
+            autoCapitalize={'off'} autoFocus
+            className={'rounded py-1 px-0.5 color text-xs text-gray-900'}
+          />
+        </label>
+        <button type={'submit'} className={'bg-fuchsia-400 rounded mt-4'}
+                name={'reg'}
+        >register
+        </button>
+        <button type={'submit'} className={'bg-fuchsia-400 rounded mb-4'}
+                name={'auth'}
+        >auth
+        </button>
+        {serverResp && <div>
+          server response: {JSON.stringify(serverResp, null, 2)}
+        </div>}
+      </form>
     </main>
-  );
+  )
 }
