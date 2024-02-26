@@ -28,6 +28,7 @@ console.log({ user })
           allowCredentials: [
             { type: 'public-key', id: user.creds.id }
           ],
+
           // transports: ["internal", "usb", "nfc", "ble"]
         }
         return Response.json({ message: 'Sending options', options }, { status: 200 })
@@ -89,6 +90,8 @@ const getOptions = ({ user }: {
       displayName: 'Test Demo',
       id: getRandomId(),
     },
+    // @ts-expect-error
+    user_verification: "preferred",
     // to prevent replay attacks. It’s a unique high-entropy string you as the web app developer must provide.
     // This challenge will be returned in the response and you must register they are the same.
     pubKeyCredParams: [{ alg: -7, type: 'public-key' }],

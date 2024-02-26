@@ -3,6 +3,7 @@ import { users } from '~/lib/users'
 import { ClientDataJSON } from '~/types/register'
 import crypto from 'crypto'
 import jwkToPem, { JWK } from 'jwk-to-pem'
+import { sha256 } from '~/utils/crypto'
 
 
 export async function POST(request: NextRequest) {
@@ -56,11 +57,4 @@ async function verify(assertion: any, userName: string) {
   }
   console.log('33333333333')
   return { status: 200, text: 'OK' }
-}
-
-
-export function sha256(data: any) {
-  const hash = crypto.createHash('sha256')
-  hash.update(data)
-  return hash.digest()
 }

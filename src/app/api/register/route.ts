@@ -128,7 +128,7 @@ function getPublicKey(authData: any) {
 }
 
 
-export function parseAuthenticatorData(authData: Buffer) {
+function parseAuthenticatorData(authData: Buffer) {
   try {
     const authenticatorData: any = {};
 
@@ -178,7 +178,7 @@ export function parseAuthenticatorData(authData: Buffer) {
   }
 }
 
-export function coseToJwk(cose: any) {
+function coseToJwk(cose: any) {
   try {
     let publicKeyJwk = {};
     const publicKeyCbor = CBOR.decodeFirstSync(cose);

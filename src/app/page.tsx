@@ -9,11 +9,9 @@ type SubmitEvent = React.FormEvent<HTMLFormElement> & {
 }
 
 export default function Home() {
-  // const [creds, setCreds] = useState<Object | null>(null)
   const [serverResp, setServerResp] = useState<any | null>(null)
 
   const handleSubmit = async (e: SubmitEvent) => {
-    console.log({ e })
     e.preventDefault()
     try {
       const isRegister = e.nativeEvent.submitter.name === 'reg'
@@ -29,7 +27,7 @@ export default function Home() {
         })
         if (res.status !== 200) {
           const msg = await res.json()
-          throw new Error(msg)
+          throw new Error()
         }
         const json = await res.json() as {
           message: string,
@@ -133,11 +131,9 @@ export default function Home() {
         // auth
       }
 
-      // const json = await response.json()
-      // setServerResp(json)
     } catch (err) {
       console.error('ERR', err)
-      setServerResp(err)
+      setServerResp(err.message)
     }
   }
 
@@ -147,7 +143,6 @@ export default function Home() {
       <form className={'flex flex-col gap-2 max-w-[300px] justify-center mx-auto w-full'}
             onSubmit={handleSubmit}>
         <h2 className={'mb-2'}>Biometric auth demo</h2>
-        <h3 className={'mb-0.5'}>Registration step</h3>
         <label className={'text-xs flex flex-col'}>
           User
           <input
