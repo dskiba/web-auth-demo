@@ -2,7 +2,6 @@ import { type NextRequest } from 'next/server'
 import { RegisterPayload } from '~/types/register'
 import { cache } from '~/lib/cache'
 import { users } from '~/lib/users'
-import { PrismaClient } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
