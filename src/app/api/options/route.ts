@@ -83,7 +83,7 @@ const getOptions = ({ user }: {
     challenge: getRandomString(),
     rp: {
       name: 'Evil Corp',
-      id: 'localhost', // Forcing the identifier of the website at registration to match the current hostname.
+      id: 'web-auth-demo.vercel.app', // Forcing the identifier of the website at registration to match the current hostname.
     },
     user: {
       name: user,
