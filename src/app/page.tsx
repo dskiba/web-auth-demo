@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 import { useState } from 'react'
 import { RegisterPayload } from '~/types/register'

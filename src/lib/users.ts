@@ -1,25 +1,23 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+type User = {
+  name: string
+  creds: string
+}
+type Db = Record<string, User>
+const db: Db  = {}
 
 const get = async (userName: string) => {
-  const user =  await prisma.user.findFirst({
-    where: {
-      name: userName
-    }
-  })
+  console.log({ db })
+  const user = db[userName]
   if(!user) return null
-  user.creds = JSON.parse(user.creds)
   return user
 }
 
 const create = async (name: string, credentials: Object) => {
-  const user = await prisma.user.create({
-    data: {
-      name: name,
-      creds: JSON.stringify(credentials),
-    }
-  })
+  const user: User = {
+    name,
+    creds: JSON.stringify(credentials)
+  }
+  db[name] = user
   user.creds = JSON.parse(user.creds)
   return user
 }
