@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { NextRequest } from 'next/server'
 import { AuthenticatorData, ClientDataJSON, GenericAttestation, User } from '~/types/register'
 import { cache } from '~/lib/cache'

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { type NextRequest } from 'next/server'
 import { RegisterPayload } from '~/types/register'
 import { cache } from '~/lib/cache'

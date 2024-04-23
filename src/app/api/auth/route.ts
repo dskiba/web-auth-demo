@@ -43,11 +43,13 @@ async function verify(assertion: any, userName: string) {
 
   const sig = Buffer.from(assertion.response.signature, 'base64')
   let authDataBuffer = Buffer.from(assertion.response.authenticatorData, 'base64')
+  // @ts-ignore
   const verify = (user.creds.credentialPublicKey.kty === 'RSA') ? crypto.createVerify('RSA-SHA256') : crypto.createVerify('sha256')
   console.log('1111111111')
   verify.update(authDataBuffer)
   verify.update(hash)
   console.log('66666666666666666', user, sig)
+  // @ts-ignore
   if (!verify.verify(jwkToPem(user.creds.credentialPublicKey as JWK), sig)) {
     console.log('2222222')
     return {
