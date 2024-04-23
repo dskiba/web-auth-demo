@@ -146,8 +146,7 @@ export default function Home() {
         <label className={'text-xs flex flex-col'}>
           User
           <input
-            id={fieldname} name={fieldname} autoComplete={'off'} autoCorrect={'off'}
-            autoCapitalize={'off'} autoFocus
+            id={fieldname} name={fieldname} type="text" autoComplete="username webauthn"
             className={'rounded py-1 px-0.5 color text-xs text-gray-900'}
           />
         </label>
