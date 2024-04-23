@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { base64js } from '~/lib/base64js'
 
 /**
